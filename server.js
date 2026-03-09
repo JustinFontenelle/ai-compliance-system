@@ -1,31 +1,55 @@
+//=========================
+// Load Environment Variables
+//=========================
+
 require("dotenv").config();
+
+//=========================
+// Import Modules
+//========================= 
+
+// External Modules
 
 const express = require("express");
 const cors = require("cors");
-const fetch = require("node-fetch");
 
+// Internal Modules
+
+const config = require("./config/appConfig");
 const generateRoute = require("./routes/generate");
+const errorHandler = require("./middleware/errorHandler");
+
+//=========================
+// Initialize Express App
+//=========================
 
 const app = express();
+
+// Core Middleware
+
 app.use(cors());
 app.use(express.json());
+
+// Static Frontend Files
+
 app.use(express.static(__dirname));
+
+//=========================
+// Routes
+//=========================
+
 app.use("/", generateRoute);
 
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+//=========================
+// Global Error Handler
+//========================= 
 
-let lastGenerationTimestamp = 0;
+app.use(errorHandler);
 
-function logEvent(type, details) {
-  console.log(
-    JSON.stringify({
-      timestamp: new Date().toISOString(),
-      event: type,
-      details
-    })
-  );
-}
+//=========================
+// Start Server
+//=========================
 
-app.listen(3000, () => {
-  console.log("Server running on http://localhost:3000");
+app.listen(config.server.port, () => {
+  console.log(`Server running on http://localhost:${config.server.port}`);
 });

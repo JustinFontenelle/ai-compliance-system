@@ -34,11 +34,15 @@ return `Compliance Checklist
   // Process AI Response
   // ================================
 
-  const data = await response.json();
+ const data = await response.json();
 
-  return data.choices[0].message.content;
+if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+  throw new Error("Invalid AI response format");
 }
 
+return data.choices[0].message.content;
+
+}
 // ========================
 // Export Service
 // ========================

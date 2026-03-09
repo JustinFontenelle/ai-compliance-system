@@ -8,8 +8,8 @@ const router = express.Router();
 
 // Middleware
 
-const validateRequest = require("../middleware/validateRequest");
 const authorizeRequest = require("../middleware/authorizeRequest");
+const validateRequest = require("../middleware/validateRequest");
 
 // Processing
 
@@ -20,25 +20,11 @@ const { formatSuccess, formatError } = require("../utils/responseFormatter");
 // Route Handler
 // ========================
 
-router.post("/generate", authorizeRequest, validateRequest, async (req, res) => {
+router.post("/generate", authorizeRequest, validateRequest, async (req, res, next) => {
 
-  try {
+  const result = await processChecklist(req.body.text);
 
-    const result = await processChecklist(req.body.text);
-
-    // Success response
-
-    res.json(formatSuccess(result));
-
-  } catch (error) {
-
-    console.error("AI processing error:", error);
-
-    // Error response
-    
-    res.status(500).json(formatError("AI processing failed"));
-
-  }
+  res.json(formatSuccess(result));
 
 });
 
