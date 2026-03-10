@@ -22,7 +22,11 @@ const { formatSuccess, formatError } = require("../utils/responseFormatter");
 
 router.post("/generate", authorizeRequest, validateRequest, async (req, res, next) => {
 
-  const result = await processChecklist(req.body.text);
+  const result = await processChecklist(
+  req.body.text,
+  req.requestId,
+  req.clientIp
+);
 
   res.json(formatSuccess(result));
 

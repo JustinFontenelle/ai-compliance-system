@@ -1,12 +1,13 @@
-function logAuditEvent(eventType, details) {
+function logAuditEvent(type, details, requestId, clientIp) {
 
-  const auditEntry = {
+  console.log(JSON.stringify({
     timestamp: new Date().toISOString(),
-    event: eventType,
+    requestId: requestId,
+    ip: clientIp,
+    event: type,
     details
-  };
+  }));
 
-  console.log(JSON.stringify(auditEntry));
 }
 
 module.exports = logAuditEvent;

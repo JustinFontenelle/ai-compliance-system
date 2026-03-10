@@ -17,6 +17,8 @@ const cors = require("cors");
 
 const config = require("./config/appConfig");
 const generateRoute = require("./routes/generate");
+const requestTracker = require("./middleware/requestTracker");
+const rateLimiter = require("./middleware/rateLimiter");
 const errorHandler = require("./middleware/errorHandler");
 
 //=========================
@@ -33,6 +35,14 @@ app.use(express.json());
 // Static Frontend Files
 
 app.use(express.static(__dirname));
+
+// Request tracking
+
+app.use(requestTracker);
+
+// Rate Limiter
+
+app.use(rateLimiter);
 
 //=========================
 // Routes
