@@ -17,9 +17,19 @@ const cors = require("cors");
 
 const config = require("./config/appConfig");
 const generateRoute = require("./routes/generate");
+const healthRoutes = require("./routes/health");
+
+// Middleware
+
 const requestTracker = require("./middleware/requestTracker");
+const requestLogger = require("./middleware/requestLogger");
 const rateLimiter = require("./middleware/rateLimiter");
 const errorHandler = require("./middleware/errorHandler");
+
+
+// Utilities
+
+const logger = require("./utils/logger");
 
 //=========================
 // Initialize Express App
@@ -36,9 +46,10 @@ app.use(express.json());
 
 app.use(express.static(__dirname));
 
-// Request tracking
+// Request Tracking and Logging
 
 app.use(requestTracker);
+app.use(requestLogger);
 
 // Rate Limiter
 
@@ -49,6 +60,7 @@ app.use(rateLimiter);
 //=========================
 
 app.use("/", generateRoute);
+app.use("/", healthRoutes);
 
 //=========================
 // Global Error Handler
@@ -61,5 +73,7 @@ app.use(errorHandler);
 //=========================
 
 app.listen(config.server.port, () => {
-  console.log(`Server running on http://localhost:${config.server.port}`);
+  logger.info("Server started", {
+  port: config.server.port
+  });
 });
