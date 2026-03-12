@@ -1,6 +1,19 @@
+//=========================
+// Request Logger Middleware
+//=========================
+
 const logger = require("../utils/logger");
+const { incrementRequests } = require("../services/metricsService");
+
+// Logs details of each incoming HTTP request and its response
 
 function requestLogger(req, res, next) {
+
+  //==========================
+  // Metrics Tracking
+  //==========================
+
+  incrementRequests();
 
   const start = Date.now();
 
@@ -20,5 +33,9 @@ function requestLogger(req, res, next) {
 
   next();
 }
+
+//==========================
+// Export Middleware
+//==========================
 
 module.exports = requestLogger;

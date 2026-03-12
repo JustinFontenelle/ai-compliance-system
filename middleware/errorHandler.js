@@ -3,12 +3,15 @@
 // ========================
 
 const logger = require("../utils/logger");
+const { incrementErrors } = require("../services/metricsService");
 
 // ========================
 // Global Error Handler
 // ========================
 
 function errorHandler(err, req, res, next) {
+
+  incrementErrors();
 
   logger.error("Unhandled server error", {
     requestId: req.requestId,
