@@ -4,6 +4,7 @@
 
 const logger = require("../utils/logger");
 const { incrementRequests } = require("../services/metricsService");
+const { recordLatency } = require("../services/metricsService");
 
 // Logs details of each incoming HTTP request and its response
 
@@ -20,6 +21,7 @@ function requestLogger(req, res, next) {
   res.on("finish", () => {
 
     const duration = Date.now() - start;
+    recordLatency(duration);
 
     logger.info("HTTP request completed", {
       requestId: req.requestId,
