@@ -2,26 +2,59 @@
 // Request Logger Middleware
 //=========================
 
+// Utilities
 const logger = require("../utils/logger");
-const { incrementRequests } = require("../services/metricsService");
-const { recordLatency } = require("../services/metricsService");
 
-// Logs details of each incoming HTTP request and its response
+// Metrics Service
+const {
+  incrementRequests,
+  recordLatency,
+  startRequest,
+  finishRequest
+} = require("../services/metricsService");
+
+
+//=========================
+// Middleware Function
+//=========================
+
+// request details, recording, observability metrics
 
 function requestLogger(req, res, next) {
 
   //==========================
-  // Metrics Tracking
+  // Request Start Tracking
   //==========================
+  
+  // Track traffic and concurrency
 
-  incrementRequests();
+  startRequest();        // concurrency +1
+  incrementRequests();   // total request counter
 
   const start = Date.now();
+
+
+  //==========================
+  // Response Completion 
+  //==========================
+  
+  // When response is finished
 
   res.on("finish", () => {
 
     const duration = Date.now() - start;
-    recordLatency(duration);
+
+    //==========================
+    // Metrics Tracking
+    //==========================
+
+    finishRequest();          // concurrency -1
+    recordLatency(duration);  // performance metric
+
+
+    //==========================
+    // Structured Request Log
+    //==========================
 
     logger.info("HTTP request completed", {
       requestId: req.requestId,
@@ -33,11 +66,17 @@ function requestLogger(req, res, next) {
 
   });
 
+
+  //==========================
+  // Continue Middleware Chain
+  //==========================
+
   next();
 }
 
-//==========================
+
+//=========================
 // Export Middleware
-//==========================
+//=========================
 
 module.exports = requestLogger;
