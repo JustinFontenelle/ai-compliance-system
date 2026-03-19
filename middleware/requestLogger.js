@@ -42,6 +42,15 @@ function requestLogger(req, res, next) {
   res.on("finish", () => {
 
     const duration = Date.now() - start;
+    
+    // Log high latency requests for performance monitoring
+    if (duration > 2000) {
+  logger.warn("High latency detected", {
+    requestId: req.requestId,
+    duration_ms: duration,
+    route: req.originalUrl
+  });
+}
 
     //==========================
     // Metrics Tracking
