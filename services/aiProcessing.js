@@ -27,6 +27,7 @@ const MAX_CONCURRENT = 2;
 // ========================
 
 async function processChecklist(policyText, requestId, clientIp) {
+  
 
   // Wait if another request is being processed
 while (activeRequests >= MAX_CONCURRENT) {
@@ -39,6 +40,7 @@ activeRequests++;
 
 // Audit Logging
   
+ try {
   logAuditEvent(
     "AI_REQUEST_RECEIVED",
     { inputLength: policyText.length },
@@ -47,19 +49,19 @@ activeRequests++;
   );
 
   const context = buildComplianceContext(policyText);
-let attempts = 0;
-const maxAttempts = 2;
 
-while (attempts < maxAttempts) {
-  try {
-    
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      temperature: 0,
-      messages: [
-        {
-          role: "system",
-          content: `
+  let attempts = 0;
+  const maxAttempts = 2;
+
+  while (attempts < maxAttempts) {
+    try {
+      const response = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        temperature: 0,
+        messages: [
+          {
+            role: "system",
+            content: `
 You are a compliance assistant.
 
 Convert the input policy into a checklist with EXACTLY these 4 sections:
@@ -76,44 +78,44 @@ Rules:
 - Each section must contain bullet checklist items
 - Keep wording clear and consistent
 `
-        },
-        {
-          role: "user",
-          content: JSON.stringify(context)
-        }
-      ]
-    });
+          },
+          {
+            role: "user",
+            content: JSON.stringify(context)
+          }
+        ]
+      });
 
-    const output = response.choices[0].message.content;
+      const output = response.choices[0].message.content;
 
-    // Validation
-    if (
-      !output.includes("Storage Security") ||
-      !output.includes("Access Control") ||
-      !output.includes("Training Requirements") ||
-      !output.includes("Breach Reporting")
-    ) {
-      throw new Error("AI output validation failed");
-    }
+      // Validation
+      if (
+        !output.includes("Storage Security") ||
+        !output.includes("Access Control") ||
+        !output.includes("Training Requirements") ||
+        !output.includes("Breach Reporting")
+      ) {
+        throw new Error("AI output validation failed");
+      }
 
-    activeRequests--;
-    return output;
+      return output;
 
-  } catch (error) {
+    } catch (error) {
+      attempts++;
+      incrementRetries();
 
-    attempts++;
-    incrementRetries();
+      console.error(`Attempt ${attempts} failed:`, error.message);
 
-    console.error(`Attempt ${attempts} failed:`, error.message);
-   
-    if (attempts >= maxAttempts) {
-      activeRequests--;
-      throw new Error("AI service failed after retries");
+      if (attempts >= maxAttempts) {
+        throw new Error("AI service failed after retries");
+      }
     }
   }
-}
-}
 
+} finally {
+  activeRequests--;
+}
+}
 // ========================
 // Export Service
 // ========================

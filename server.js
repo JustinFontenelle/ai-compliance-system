@@ -17,6 +17,7 @@ const cors = require("cors");
 
 const config = require("./config/appConfig");
 const generateRoute = require("./routes/generate");
+const statusRoute = require("./routes/status");
 const healthRoutes = require("./routes/health");
 const debugRoutes = require("./routes/debugRoutes");
 const metricsRoutes = require("./routes/metricsRoutes");
@@ -62,6 +63,7 @@ app.use(rateLimiter);
 //=========================
 
 app.use("/", generateRoute);
+app.use("/", statusRoute);
 app.use("/", healthRoutes);
 app.use("/debug", debugRoutes);
 app.use("/metrics", metricsRoutes);

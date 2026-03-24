@@ -25,6 +25,7 @@ const validateRequest = require("../middleware/validateRequest");
 // Services / Processing
 // ========================
 
+const { enqueueJob } = require("../services/queueService");
 const processChecklist = require("../services/aiProcessing");
 
 
@@ -39,33 +40,30 @@ const { formatSuccess, formatError } = require("../utils/responseFormatter");
 // Route Handler
 // ========================
 
-router.post("/generate", authorizeRequest, validateRequest, async (req, res, next) => {
+router.post(
+  "/generate",
+  authorizeRequest,
+  validateRequest,
+  async (req, res, next) => {
 
-  // ========================
-  // Request Timeline Event
-  // ========================
+    logRequestEvent(req, "[ROUTE] Generate checklist request received");
 
-  logRequestEvent(req, "Generate checklist request received");
+    try {
+      const jobId = await enqueueJob({
+        text: req.body.text,
+        requestId: req.requestId,
+        clientIp: req.clientIp
+      });
+      res.status(202).json({
+        jobId,
+        status: "processing"
+      });
 
-
-  try {
-
-    const result = await processChecklist(
-      req.body.text,
-      req.requestId,
-      req.clientIp
-    );
-
-    res.json(formatSuccess(result));
-
-  } catch (error) {
-
-    next(error);
-
+    } catch (error) {
+      next(error);
+    }
   }
-
-});
-
+);
 
 // ========================
 // Export Router
