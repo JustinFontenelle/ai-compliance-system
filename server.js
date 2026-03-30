@@ -1,21 +1,9 @@
-//=========================
-// Load Environment Variables
-//=========================
-
 require("dotenv").config();
-
-//=========================
-// Import Modules
-//========================= 
-
-// External Modules
 
 const express = require("express");
 const cors = require("cors");
 
-// Internal Modules
-
-const config = require("./config/appConfig");
+// Routes
 const generateRoute = require("./routes/generate");
 const statusRoute = require("./routes/status");
 const healthRoutes = require("./routes/health");
@@ -23,63 +11,45 @@ const debugRoutes = require("./routes/debugRoutes");
 const metricsRoutes = require("./routes/metricsRoutes");
 
 // Middleware
-
 const requestTracker = require("./middleware/requestTracker");
 const requestLogger = require("./middleware/requestLogger");
 const rateLimiter = require("./middleware/rateLimiter");
 const errorHandler = require("./middleware/errorHandler");
 
-
-// Utilities
-
+// Config / Utils
+const config = require("./config/appConfig");
 const logger = require("./utils/logger");
-
-//=========================
-// Initialize Express App
-//=========================
 
 const app = express();
 
-// Core Middleware
-
+// Core middleware
 app.use(cors());
 app.use(express.json());
 
-// Static Frontend Files
-
+// Static files
 app.use(express.static(__dirname));
 
-// Request Tracking and Logging
-
+// Tracking middleware functions
 app.use(requestTracker);
 app.use(requestLogger);
 
-// Rate Limiter
+// Rate limiting 
+app.use("/generate", rateLimiter);
+app.use("/status", rateLimiter);
 
-app.use(rateLimiter);
-
-//=========================
 // Routes
-//=========================
-
 app.use("/", generateRoute);
 app.use("/", statusRoute);
 app.use("/", healthRoutes);
 app.use("/debug", debugRoutes);
-app.use("/metrics", metricsRoutes);
+app.use("/", metricsRoutes);
 
-//=========================
-// Global Error Handler
-//========================= 
-
+// Error handler 
 app.use(errorHandler);
 
-//=========================
-// Start Server
-//=========================
-
+// Start server
 app.listen(config.server.port, () => {
   logger.info("Server started", {
-  port: config.server.port
+    port: config.server.port
   });
 });

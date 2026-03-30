@@ -22,22 +22,24 @@ export async function generateChecklist(text) {
   if (!response.ok) {
     throw new Error(data.error || "Request failed");
   }
-//=======================
-// Store Job ID in Local Storage
-// ========================
+
+  // ========================
+  // Store Job ID in Local Storage
+  // ========================
 
   const { jobId } = data;
-localStorage.setItem("jobId", jobId);
+  localStorage.setItem("jobId", jobId);
 
-// ========================
-// Poll Until Job Completes
-// ========================
-  
+  // ========================
+  // Poll Until Job Completes
+  // ========================
+
   return await pollForCompletion(jobId, (message) => {
-  const output = document.getElementById("output");
-  output.textContent = message;
-});
+    const output = document.getElementById("output");
+    output.textContent = message;
+  });
 }
+
 
 // ========================
 // Resume Existing Job
@@ -50,6 +52,7 @@ export async function generateChecklistFromJobId(jobId) {
   });
 }
 
+
 // ========================
 // Polling Function to Check Job Status
 // ========================
@@ -58,52 +61,76 @@ async function pollForCompletion(jobId, updateUI) {
   let attempts = 0;
   const maxAttempts = 10;
 
-  while (attempts < maxAttempts) {
+  while (true) {
+
+    // ========================
+    // Timeout Protection
+    // ========================
+
+    if (attempts >= maxAttempts) {
+      localStorage.removeItem("jobId");
+      throw new Error("Job timed out");
+    }
+
     const response = await fetch(`http://localhost:3000/status/${jobId}`);
 
-    // Handle rate limiting by waiting before retrying
+    // ========================
+    // Handle Rate Limiting
+    // ========================
 
     if (response.status === 429) {
       attempts++;
-      await delay(4000); 
+      await delay(4000);
       continue;
     }
 
     const job = await response.json();
 
-// job status and return result if completed
+    // ========================
+    // Processing State
+    // ========================
 
-if (job.status === "processing") {
-  const message = `${formatProgress(job.progress)}... (Attempt ${job.attempts} of ${job.maxAttempts})`;
+    if (job.status === "processing") {
+      const message = `${formatProgress(job.progress)}... (Attempt ${job.attempts} of ${job.maxAttempts})`;
 
-  console.log(message);
+      console.log(message);
 
-  if (updateUI) {
-    updateUI(message);
-  }
-}
+      if (updateUI) {
+        updateUI(message);
+      }
+    }
+
+    // ========================
+    // Completed State
+    // ========================
 
     if (job.status === "completed") {
-      localStorage.removeItem("jobId"); 
+      localStorage.removeItem("jobId");
       return job.result;
     }
 
-    
-  if (job.status === "failed") {
-    localStorage.removeItem("jobId");
-    const errorMessage = job.error || "Job failed";
-    throw new Error(errorMessage);
-}
-    attempts++;
-    await delay(2000); 
-  }
+    // ========================
+    // Failed State
+    // ========================
 
-  throw new Error("Job timed out");
+    if (job.status === "failed") {
+      localStorage.removeItem("jobId");
+      const errorMessage = job.error || "Job failed";
+      throw new Error(errorMessage);
+    }
+
+    // ========================
+    // Continue Polling
+    // ========================
+
+    attempts++;
+    await delay(2000);
+  }
 }
 
 
 // ========================
-// Small Utility: Delay
+// Utility: Delay
 // ========================
 
 function delay(ms) {
@@ -112,7 +139,7 @@ function delay(ms) {
 
 
 // ========================
-// Small Utility: Format Progress
+// Utility: Format Progress
 // ========================
 
 function formatProgress(p) {

@@ -3,14 +3,13 @@
 //=========================
 
 const express = require("express");
-const { getMetrics } = require("../services/metricsService");
-
 const router = express.Router();
 
-router.get("/", (req, res) => {
+const { getMetrics } = require("../services/metricsService");
+
+router.get("/metrics", (req, res) => {
   res.json(getMetrics());
 });
-
 
 //==========================
 // Export Router

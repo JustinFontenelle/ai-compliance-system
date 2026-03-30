@@ -49,7 +49,9 @@ function startRequest() {
 }
 
 function finishRequest() {
-  metrics.currentRequests--;
+  if (metrics.currentRequests > 0) {
+    metrics.currentRequests--;
+  }
 }
 
 function incrementRetries() {
