@@ -49,9 +49,63 @@ The business layer trusts requests passed down from the policy layer without rev
 This aligns with the access control and auditability expectations in compliance heavy environments.
 
 ---
-
 ## Architecture
 
+## System Overview
+
+```mermaid
+flowchart LR
+    A[Client] --> B[Generate API]
+    B --> C[Queue System]
+    C --> D[Worker]
+    D --> E[AI Processing]
+    E --> F[Structured Result]
+    F --> G[Status Polling]
+    G --> A
+```
+
+## Detailed Request Flow
+
+```mermaid
+flowchart TD
+    A[Client] --> B[Middleware Layer]
+    B --> C[Generate Route]
+    C --> D[Queue Service]
+    D --> E[Worker]
+
+    E --> F[AI Processing]
+    F --> G[Check Output Validity]
+
+    G -->|Valid| H[Store Result]
+    H --> I[Status Endpoint]
+    I --> J[Client]
+
+    G -->|Invalid| K[Retry Logic]
+    K --> F
+```
+
+## Failure Handling Flow
+
+```mermaid
+flowchart TD
+    A[AI Call] --> B[Check for Timeout or Error]
+
+    B -->|No Error| C[Success]
+
+    B -->|Error Detected| D[Check if Retryable]
+
+    D -->|Retryable| E[Retry Attempt]
+    E --> A
+
+    D -->|Not Retryable| F[Fail Fast]
+
+    E --> G[Check Max Attempts]
+
+    G -->|Attempts Remaining| A
+    G -->|Max Reached| F
+
+    F --> H[Job Marked Failed]
+```
 ### Request Flow
 Client -> Request Tracking -> Rate Limiting -> Authorization -> Validation ->
 Routes -> Queue -> Worker -> AI Processing -> Result -> Status Polling
