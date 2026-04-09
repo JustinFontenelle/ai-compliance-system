@@ -1,4 +1,4 @@
-# AI Assisted Compliance Documentation Tool
+# AI Assisted Compliance Documentation System
 
 This project is a backend system that transforms unstructured compliance or policy text into structured regulated checklists using AI.
 
