@@ -2,6 +2,8 @@ require("dotenv").config();
 
 const express = require("express");
 const cors = require("cors");
+const { connectRedis } = require("./config/redisClient");
+const PORT = process.env.PORT || 3000;
 
 // Routes
 const generateRoute = require("./routes/generate");
@@ -48,8 +50,12 @@ app.use("/", metricsRoutes);
 app.use(errorHandler);
 
 // Start server
-app.listen(config.server.port, () => {
-  logger.info("Server started", {
-    port: config.server.port
+async function startServer() {
+  await connectRedis();
+
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
   });
-});
+}
+
+startServer();

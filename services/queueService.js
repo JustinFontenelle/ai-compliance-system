@@ -12,13 +12,30 @@ const {
 
 const processChecklist = require("./aiProcessing");
 
-const JOB_TIMEOUT_MS = 10000;
-const MAX_JOB_DURATION_MS = 15000;
+const { redisClient } = require("../config/redisClient");
 
-const jobs = {};
+const JOB_TIMEOUT_MS = 20000;
+const MAX_JOB_DURATION_MS = 15000;
 
 function generateJobId() {
   return Date.now().toString();
+}
+
+// ============================
+// Utility: Get Job from Redis
+// ============================
+
+async function getJob(jobId) {
+  const job = await redisClient.get(`job:${jobId}`);
+  return job ? JSON.parse(job) : null;
+}
+
+// ============================
+// Utility: Save Job to Redis
+// ============================
+
+async function saveJob(jobId, job) {
+  await redisClient.set(`job:${jobId}`, JSON.stringify(job));
 }
 
 // ============================
@@ -30,7 +47,7 @@ async function enqueueJob(data) {
 
   incrementRequests();
 
-  jobs[jobId] = {
+  const job = {
     status: "pending",
     data,
     result: null,
@@ -42,6 +59,8 @@ async function enqueueJob(data) {
     createdAt: Date.now()
   };
 
+  await saveJob(jobId, job);
+
   logger.info("JOB_CREATED", {
     requestId: data.requestId,
     jobId,
@@ -49,6 +68,7 @@ async function enqueueJob(data) {
     maxAttempts: 3
   });
 
+  // personal note: Still coupled for now (will fix this)
   processJob(jobId);
 
   return jobId;
@@ -59,11 +79,15 @@ async function enqueueJob(data) {
 // ============================
 
 async function processJob(jobId) {
-  const job = jobs[jobId];
+  let job = await getJob(jobId);
+
+  if (!job) return;
 
   job.status = "processing";
   job.progress = "starting";
   job.startedAt = Date.now();
+
+  await saveJob(jobId, job);
 
   logger.info("JOB_STARTED", {
     requestId: job.requestId,
@@ -72,13 +96,13 @@ async function processJob(jobId) {
 
   while (job.attempts < job.maxAttempts) {
 
-    // Stuck job detection
-
     const duration = Date.now() - job.startedAt;
 
     if (duration > MAX_JOB_DURATION_MS) {
       job.status = "failed";
       job.progress = "stuck";
+
+      await saveJob(jobId, job);
 
       logger.error("JOB_STUCK_DETECTED", {
         requestId: job.requestId,
@@ -102,6 +126,8 @@ async function processJob(jobId) {
     try {
       job.attempts++;
 
+      await saveJob(jobId, job);
+
       logger.info("JOB_ATTEMPT", {
         requestId: job.requestId,
         jobId,
@@ -109,6 +135,8 @@ async function processJob(jobId) {
       });
 
       job.progress = "calling_ai";
+
+      await saveJob(jobId, job);
 
       const result = await Promise.race([
         processChecklist(
@@ -121,11 +149,11 @@ async function processJob(jobId) {
         )
       ]);
 
-      // success validation
-
       job.progress = "completed";
       job.result = result;
       job.status = "completed";
+
+      await saveJob(jobId, job);
 
       logger.info("JOB_SUCCESS", {
         requestId: job.requestId,
@@ -134,14 +162,14 @@ async function processJob(jobId) {
         resultLength: result?.length || 0
       });
 
-      // Reset failure count on success
-
       resetFailures();
 
       return;
 
     } catch (error) {
       job.error = `Attempt ${job.attempts}: ${error.message}`;
+
+      await saveJob(jobId, job);
 
       logger.error("JOB_FAILED_ATTEMPT", {
         requestId: job.requestId,
@@ -153,6 +181,8 @@ async function processJob(jobId) {
       if (job.attempts >= job.maxAttempts) {
         job.progress = "failed";
         job.status = "failed";
+
+        await saveJob(jobId, job);
 
         logger.error("JOB_FAILED_FINAL", {
           requestId: job.requestId,
@@ -176,14 +206,6 @@ async function processJob(jobId) {
       await delay(2000);
     }
   }
-}
-
-// ==========================
-// Get job status
-// ==========================
-
-function getJob(jobId) {
-  return jobs[jobId];
 }
 
 // ==========================
