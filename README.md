@@ -302,6 +302,7 @@ Response:
 
 ## Roadmap
 
-- [ ] Redis-backed queue (replacing current in memory implementation)
+- [x] Redis integration for persistent job state (replacing in-memory storage)
+- [ ] Redis backed queue system (LPUSH / BRPOP for job processing)
+- [ ] Worker decoupling and distributed job processing
 - [ ] Queue persistence and recovery across restarts
-- [ ] Frontend interface for document submission and result display
