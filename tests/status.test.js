@@ -1,7 +1,7 @@
 process.env.INTERNAL_API_KEY = "test-key";
 
 // ========================
-// MOCKS (MUST BE FIRST)
+// MOCKS (First)
 // ========================
 
 jest.mock("../services/queueService", () => {

@@ -43,6 +43,8 @@ async function saveJob(jobId, job) {
 // ============================
 
 async function enqueueJob(data) {
+  console.log("ENQUEUE JOB CALLED");
+
   const jobId = generateJobId();
 
   incrementRequests();
@@ -59,7 +61,13 @@ async function enqueueJob(data) {
     createdAt: Date.now()
   };
 
+  //DEBUG START
+  console.log("ABOUT TO SAVE JOB");
+
   await saveJob(jobId, job);
+
+  console.log("JOB SAVED");
+  //DEBUG END
 
   logger.info("JOB_CREATED", {
     requestId: data.requestId,
@@ -68,8 +76,9 @@ async function enqueueJob(data) {
     maxAttempts: 3
   });
 
-  // personal note: Still coupled for now (will fix this)
-  processJob(jobId);
+  await redisClient.lPush("queue:jobs", jobId);
+
+  console.log("JOB PUSHED TO QUEUE:", jobId);
 
   return jobId;
 }
