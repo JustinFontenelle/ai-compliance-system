@@ -1,10 +1,16 @@
 # AI Assisted Compliance Documentation System
 
-This project is a backend system that transforms unstructured compliance or policy text into structured regulated checklists using AI.
+## What This Demonstrates
 
-It's designed for environments like fintech, healthtech, and regtech where AI output can't just "look right" it needs to be consistent, traceable, and more importantly reliable.
+This project focuses on building reliable AI systems, not just generating output. It shows how to handle real world issues like inconsistent responses, retries, and failure scenarios when working with LLMs. The system enforces structure, validates results, and remains observable under failure conditions. Overall, it reflects a production mindset toward integrating AI into systems where correctness and reliability matter.
 
-The focus is not just generating an output, but building a system that behaves predictably under real world conditions such as:
+---
+
+This project is a backend system that transforms unstructured compliance or policy text into structured, regulated checklists using AI.
+
+It is designed for environments like fintech, healthtech, and regtech where AI output cannot just "look right" — it needs to be consistent, traceable, and reliable.
+
+The focus is not just generating output, but building a system that behaves predictably under real-world conditions such as:
 
 - asynchronous processing  
 - external API failures  
@@ -140,6 +146,22 @@ The system enforces structure through:
 - validation of required sections  
 - retry logic when output is invalid  
 - failure classification to avoid unnecessary retries  
+
+This ensures outputs are consistent and usable, rather than passing raw AI responses directly to the client.
+
+---
+
+## AI Processing and Guardrails
+
+AI output is treated as unreliable by default.
+
+The system enforces structure through:
+
+• temperature set to 0 for predictable output
+• predefined response schema
+• validation of required sections
+• retry logic for invalid responses
+• failure classification to avoid unnecessary retries
 
 This ensures outputs are consistent and usable, rather than passing raw AI responses directly to the client.
 
@@ -299,10 +321,3 @@ Response:
 - **Error handling** — failure classification and retry strategies
 
 ---
-
-## Roadmap
-
-- [x] Redis integration for persistent job state (replacing in-memory storage)
-- [ ] Redis backed queue system (LPUSH / BRPOP for job processing)
-- [ ] Worker decoupling and distributed job processing
-- [ ] Queue persistence and recovery across restarts
