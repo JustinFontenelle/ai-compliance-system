@@ -1,4 +1,4 @@
-const { workerClient } = require("../config/redisClient");
+const { workerClient, connectRedis } = require("../config/redisClient");
 const processChecklist = require("../services/aiProcessing");
 const logger = require("../utils/logger");
 
@@ -109,7 +109,9 @@ async function startWorker() {
 }
 
 async function checkForStuckJobs() {
+  if (process.env.NODE_ENV !== "production") {
   console.log("Checking for stuck jobs...");
+}
 
   const keys = await workerClient.keys("job:*");
 
@@ -119,46 +121,62 @@ async function checkForStuckJobs() {
 
     const job = JSON.parse(jobRaw);
 
-    if (job.status === "processing") {
-      const now = Date.now();
-      const lastUpdate = job.lastUpdatedAt || job.startedAt;
+    if (job.status !== "processing") continue;
 
-      if (now - lastUpdate > STUCK_THRESHOLD_MS) {
-        console.log("STUCK JOB DETECTED:", key);
+    const now = Date.now();
+    const lastUpdate = job.lastUpdatedAt || job.startedAt;
 
-        // prevent infinite requeue loops
-        job.requeueCount = job.requeueCount || 0;
+    if (now - lastUpdate > STUCK_THRESHOLD_MS) {
+      console.log("STUCK JOB DETECTED:", key);
 
-        if (job.requeueCount >= 2) {
-          console.log("JOB PERMANENTLY FAILED:", key);
+      if (job.progress === "requeued") continue;
 
-          job.status = "failed";
-          job.progress = "failed";
-          job.error = "Exceeded requeue limit";
-          job.lastUpdatedAt = Date.now();
+      job.requeueCount = job.requeueCount || 0;
 
-          await workerClient.set(key, JSON.stringify(job));
-          continue;
-        }
+      if (job.requeueCount >= 2) {
+        console.log("JOB PERMANENTLY FAILED:", key);
 
-        // requeue the job
-        job.status = "pending";
-        job.progress = "requeued";
-        job.error = "Requeued after being stuck";
+        job.status = "failed";
+        job.progress = "failed";
+        job.error = "Exceeded requeue limit";
         job.lastUpdatedAt = Date.now();
 
-        job.attempts = 0;
-        job.requeueCount++;
-
         await workerClient.set(key, JSON.stringify(job));
-
-        const jobId = key.split(":")[1];
-        await workerClient.lPush("queue:jobs", jobId);
-
-        console.log("REQUEUED STUCK JOB:", jobId);
+        continue;
       }
+
+      job.status = "requeued";
+      job.progress = "requeued";
+      job.error = "Requeued after being stuck";
+      job.lastUpdatedAt = Date.now();
+      job.attempts = 0;
+      job.requeueCount++;
+
+      await workerClient.set(key, JSON.stringify(job));
+
+      const jobId = key.split(":")[1];
+      await workerClient.lPush("queue:jobs", jobId);
+
+      console.log("REQUEUED STUCK JOB:", jobId);
     }
   }
+}
+
+// Proper startup sequence for Docker worker container
+if (require.main === module) {
+  (async () => {
+    try {
+      console.log("Connecting to Redis (worker)...");
+      await connectRedis();
+
+      console.log("Redis connected (worker)");
+      await startWorker();
+
+    } catch (err) {
+      console.error("Worker startup failed:", err);
+      process.exit(1);
+    }
+  })();
 }
 
 module.exports = { startWorker };

@@ -4,14 +4,19 @@
 
 const { createClient } = require("redis");
 
-const redisClient = createClient({
-  url: "redis://127.0.0.1:6379"
-});
+// redis connection settings
+const REDIS_HOST = process.env.REDIS_HOST || "127.0.0.1";
+const REDIS_PORT = process.env.REDIS_PORT || 6379;
 
-//separate client for worker
-const workerClient = createClient({
-  url: "redis://127.0.0.1:6379"
-});
+// Shared config
+const redisConfig = {
+  url: `redis://${REDIS_HOST}:${REDIS_PORT}`
+};
+
+const redisClient = createClient(redisConfig);
+
+// Separate client for worker
+const workerClient = createClient(redisConfig);
 
 redisClient.on("error", (err) => {
   console.error("Redis Client Error", err);
@@ -22,6 +27,8 @@ workerClient.on("error", (err) => {
 });
 
 async function connectRedis() {
+  console.log("Redis connecting...");
+
   if (!redisClient.isOpen) {
     await redisClient.connect();
     console.log("Redis client connected");
@@ -31,6 +38,8 @@ async function connectRedis() {
     await workerClient.connect();
     console.log("Worker client connected");
   }
+
+  console.log("Redis fully initialized");
 }
 
 module.exports = {

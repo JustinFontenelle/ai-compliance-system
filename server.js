@@ -4,7 +4,6 @@ const express = require("express");
 const cors = require("cors");
 const { connectRedis } = require("./config/redisClient");
 const PORT = process.env.PORT || 3000;
-const { startWorker } = require("./workers/jobWorker");
 
 // Routes
 const generateRoute = require("./routes/generate");
@@ -53,7 +52,6 @@ app.use(errorHandler);
 // Start server
 async function startServer() {
   await connectRedis();
-  startWorker();
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
   });

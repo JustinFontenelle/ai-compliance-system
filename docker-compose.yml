@@ -1,0 +1,34 @@
+version: "3.8"
+
+services:
+  api:
+    build: .
+    container_name: api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOST=redis
+    env_file:
+      - .env
+    command: node server.js
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    container_name: worker
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOST=redis
+    env_file:
+      - .env
+    command: node workers/jobWorker.js
+
+  redis:
+    image: redis:7
+    container_name: redis
+    ports:
+      - "6379:6379"
